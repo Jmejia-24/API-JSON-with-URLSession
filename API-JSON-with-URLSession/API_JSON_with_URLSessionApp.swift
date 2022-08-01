@@ -11,7 +11,7 @@ import SwiftUI
 struct API_JSON_with_URLSessionApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeUserListView()
         }
     }
 }

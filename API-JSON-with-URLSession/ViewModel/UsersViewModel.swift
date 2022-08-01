@@ -9,7 +9,7 @@ import Foundation
 
 final class UsersViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
-    @Published var users = [User]()
+    @Published private(set) var users = [User]()
     
     @MainActor
     func fetchUsers() async throws {

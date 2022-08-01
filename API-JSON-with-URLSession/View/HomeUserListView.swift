@@ -7,51 +7,50 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct HomeUserListView: View {
     @StateObject private var viewModel = UsersViewModel()
     @State private var error: UsersViewModel.UserError?
     @State private var hasError = false
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                if viewModel.isRefreshing {
-                    ProgressView()
-                } else {
+        
+        ZStack {
+            if viewModel.isRefreshing {
+                ProgressView()
+            } else {
+                NavigationView {
                     List{
                         ForEach(viewModel.users, id: \.id) { user in
-                            UserView(user: user)
-                                .listRowSeparator(.hidden)
+                            UserInfoView(name: user.name)
+                                .background(
+                                    NavigationLink("", destination: UserDetailView(user: user))
+                                        .opacity(0)
+                                )
                         }
+                        .listRowSeparator(.hidden)
                     }
                     .listStyle(.plain)
                     .navigationTitle("Users")
                 }
             }
-            .task {
-                await execute()
-            }
-            .alert(isPresented: $hasError,
-                   error: error) {
-                Button {
-                    Task {
-                        await execute()
-                    }
-                } label: {
-                    Text("Retry")
+        }
+        .task {
+            await execute()
+        }
+        .alert(isPresented: $hasError,
+               error: error) {
+            Button {
+                Task {
+                    await execute()
                 }
+            } label: {
+                Text("Retry")
             }
         }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-}
-
-private extension ContentView {
+private extension HomeUserListView {
     func execute() async {
         do {
             try await viewModel.fetchUsers()
