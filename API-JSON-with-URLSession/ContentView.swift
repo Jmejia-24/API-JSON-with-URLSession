@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = UsersViewModel()
+    @State private var error: UsersViewModel.UserError?
+    @State private var hasError = false
     
     var body: some View {
         NavigationView {
@@ -26,9 +28,16 @@ struct ContentView: View {
                     .navigationTitle("Users")
                 }
             }
-            .onAppear(perform: viewModel.fetchUsers)
-            .alert(isPresented: $viewModel.hasError, error: viewModel.error) {
-                Button(action: viewModel.fetchUsers) {
+            .task {
+                await execute()
+            }
+            .alert(isPresented: $hasError,
+                   error: error) {
+                Button {
+                    Task {
+                        await execute()
+                    }
+                } label: {
                     Text("Retry")
                 }
             }
@@ -39,5 +48,18 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
+    }
+}
+
+private extension ContentView {
+    func execute() async {
+        do {
+            try await viewModel.fetchUsers()
+        } catch {
+            if let userError = error as? UsersViewModel.UserError {
+                self.hasError = true
+                self.error = userError
+            }
+        }
     }
 }

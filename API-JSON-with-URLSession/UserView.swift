@@ -16,7 +16,6 @@ struct UserView: View {
             Text("**Email**: \(user.email)")
             Divider()
             Text("**Company**: \(user.company.name)")
-            
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()

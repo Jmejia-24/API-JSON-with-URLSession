@@ -6,50 +6,35 @@
 //
 
 import Foundation
-import Combine
 
 final class UsersViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
-    @Published var hasError = false
     @Published var users = [User]()
-    @Published var error: UserError?
-    private var bag = Set<AnyCancellable>()
     
-    func fetchUsers() {
+    @MainActor
+    func fetchUsers() async throws {
         let usersUrlString = "https://jsonplaceholder.typicode.com/users"
-        
         if let url = URL(string: usersUrlString) {
             isRefreshing = true
-            hasError = false
             
-            URLSession
-                .shared
-                .dataTaskPublisher(for: url)
-                .receive(on: DispatchQueue.main)
-                .tryMap { res in
-                    guard let response = res.response as? HTTPURLResponse,
-                          response.statusCode >= 200 && response.statusCode <= 300 else {
-                              throw UserError.invalidStatusCode
-                          }
-                    let decoder = JSONDecoder()
-                    guard let users = try? decoder.decode([User].self, from: res.data) else {
-                        throw UserError.failedToDecode
-                    }
-                    
-                    return users
+            defer { isRefreshing = false }
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                
+                guard let response = response as? HTTPURLResponse,
+                      response.statusCode >= 200 && response.statusCode <= 299 else {
+                          throw UserError.invalidStatusCode
+                      }
+                
+                let decoder = JSONDecoder()
+                guard let users = try? decoder.decode([User].self, from: data) else {
+                    throw UserError.failedToDecode
                 }
-                .sink { [weak self] res in
-                    defer { self?.isRefreshing = false }
-                    switch res {
-                    case .failure(let error):
-                        self?.hasError = false
-                        self?.error = UserError.custom(error: error)
-                    default: break
-                    }
-                } receiveValue: { [weak self] users in
-                    self?.users = users
-                }
-                .store(in: &bag)
+                self.users = users
+            } catch {
+                throw UserError.custom(error: error)
+            }
         }
     }
 }
