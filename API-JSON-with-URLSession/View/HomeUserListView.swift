@@ -9,11 +9,8 @@ import SwiftUI
 
 struct HomeUserListView: View {
     @StateObject private var viewModel = UsersViewModel()
-    @State private var error: UsersViewModel.UserError?
-    @State private var hasError = false
     
     var body: some View {
-        
         ZStack {
             if viewModel.isRefreshing {
                 ProgressView()
@@ -35,29 +32,16 @@ struct HomeUserListView: View {
             }
         }
         .task {
-            await execute()
+            await viewModel.execute()
         }
-        .alert(isPresented: $hasError,
-               error: error) {
+        .alert(isPresented: $viewModel.hasError,
+               error: viewModel.error) {
             Button {
                 Task {
-                    await execute()
+                    await viewModel.execute()
                 }
             } label: {
                 Text("Retry")
-            }
-        }
-    }
-}
-
-private extension HomeUserListView {
-    func execute() async {
-        do {
-            try await viewModel.fetchUsers()
-        } catch {
-            if let userError = error as? UsersViewModel.UserError {
-                self.hasError = true
-                self.error = userError
             }
         }
     }
